@@ -208,7 +208,7 @@ this.ckan.module('spatial-query', function ($, _) {
       } else {
         map.fitBounds(this.options.default_extent, {"animate": false});
       }
-
+    
     },
 
     _onReady: function() {
@@ -228,28 +228,32 @@ this.ckan.module('spatial-query', function ($, _) {
       // OK map time
       this.mainMap = map = this._createMap('dataset-map-container');
 
-      var expandButton = L.Control.extend({
+      var draw = new L.Control.Draw({
         position: 'topright',
-        onAdd: function(map) {
-          var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-
-          var button = L.DomUtil.create('a', 'leaflet-control-custom-button', container);
-          button.innerHTML = '<i class="fa fa-pencil"></i>';
-          button.title = module._('Draw an extent');
-
-          L.DomEvent.on(button, 'click', function(e) {
-            module.sandbox.body.append(module._createModal());
-            module.modal.modal('show');
-
-          });
-
-          return container;
+        draw: {
+          polyline: false,
+          polygon: false,
+          circle: false,
+          circlemarker: false,
+          marker: false,
+          rectangle: {shapeOptions: module.options.style}
         }
       });
-      map.addControl(new expandButton());
+      map.addControl(draw);
 
-      module._setPreviousBBBox(map);
+      module._setPreviousBBBox(map, zoom=true);
 
+      map.on('draw:created', function (e) {
+        if (module.extentLayer) {
+          map.removeLayer(module.extentLayer);
+        }
+        module.extentLayer = extentLayer = e.layer;
+        let extentBounds = extentLayer.getBounds().toBBoxString();
+        $('#ext_bbox').val(extentBounds); // hiddlen <input>
+        map.addLayer(extentLayer);
+
+        module._onApply(); // Form Submit
+      });
     }
   }
 });
